@@ -1,6 +1,7 @@
 package com.innobead.gradle.task
 
 import com.innobead.gradle.GradleSupport
+import com.innobead.gradle.plugin.PythonPlugin
 import com.innobead.gradle.plugin.pythonPluginExtension
 import com.innobead.gradle.plugin.taskName
 import org.gradle.api.DefaultTask
@@ -9,7 +10,7 @@ import java.io.File
 
 
 @GradleSupport
-class PythonGrpcTask : DefaultTask() {
+class PythonGrpcTask : AbstractTask() {
 
     val protoSourceDirs by lazy {
         project.extensions.pythonPluginExtension.protoSourceDirs
@@ -23,15 +24,12 @@ class PythonGrpcTask : DefaultTask() {
         project.extensions.pythonPluginExtension.protoCodeGeneratedDir
     }
 
-    val virtualenvDir by lazy {
-        project.extensions.pythonPluginExtension.virtualenvDir
-    }
-
     val pipOptions by lazy {
         project.extensions.pythonPluginExtension.pipOptions
     }
 
     init {
+        group = PythonPlugin.name
         description = "Build gRPC Python client code"
 
         project.afterEvaluate {

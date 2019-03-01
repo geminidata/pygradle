@@ -10,11 +10,14 @@ import org.gradle.api.Project
 class PythonPlugin : Plugin<Project> {
 
     companion object {
+        val name = "python"
+
         val builtinTasks = listOf(
                 PythonRuntimeTask::class,
                 PythonDependenciesTask::class,
                 PythonCompileTask::class,
                 PythonBuildTask::class,
+                PythonInstallTask::class,
                 PythonTestTask::class,
                 PythonGrpcTask::class,
                 PythonCleanTask::class

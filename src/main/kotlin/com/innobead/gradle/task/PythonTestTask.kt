@@ -1,6 +1,7 @@
 package com.innobead.gradle.task
 
 import com.innobead.gradle.GradleSupport
+import com.innobead.gradle.plugin.PythonPlugin
 import com.innobead.gradle.plugin.PythonPluginExtension
 import com.innobead.gradle.plugin.pythonPluginExtension
 import com.innobead.gradle.plugin.taskName
@@ -10,14 +11,10 @@ import java.io.File
 
 
 @GradleSupport
-class PythonTestTask : DefaultTask() {
+class PythonTestTask : AbstractTask() {
 
     val testReportDir by lazy {
         project.extensions.pythonPluginExtension.testReportDir
-    }
-
-    val virtualenvDir by lazy {
-        project.extensions.pythonPluginExtension.virtualenvDir
     }
 
     val pipOptions by lazy {
@@ -25,6 +22,7 @@ class PythonTestTask : DefaultTask() {
     }
 
     init {
+        group = PythonPlugin.name
         description = "Python Unit test (pytest)"
 
         project.afterEvaluate {

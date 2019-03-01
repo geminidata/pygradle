@@ -1,23 +1,15 @@
 package com.innobead.gradle.task
 
 import com.innobead.gradle.GradleSupport
+import com.innobead.gradle.plugin.PythonPlugin
 import com.innobead.gradle.plugin.pythonPluginExtension
-import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.TaskAction
-import java.io.File
+import org.gradle.internal.io.NullOutputStream
 
 
 @GradleSupport
-class PythonRuntimeTask : DefaultTask() {
-
-    val virtualenvDir by lazy {
-        project.extensions.pythonPluginExtension.virtualenvDir
-    }
-
-    val pythonDir by lazy {
-        project.extensions.pythonPluginExtension.pythonDir
-    }
+class PythonRuntimeTask : AbstractTask() {
 
     val pipOptions by lazy {
         project.extensions.pythonPluginExtension.pipOptions
@@ -29,6 +21,7 @@ class PythonRuntimeTask : DefaultTask() {
     )
 
     init {
+        group = PythonPlugin.name
         description = "Create Python sandbox (virtualenv)"
     }
 
@@ -36,36 +29,39 @@ class PythonRuntimeTask : DefaultTask() {
     fun action() {
         val commands = mutableListOf<String>()
 
-        var isPipInstalled = false
+        var pipInstalled = isPipInstalled()
 
-        for (url in downloadUrls) {
-            commands.addAll(listOf(
-                    "curl -OL $url",
-                    "python get-pip.py -I --prefix $pythonDir",
-                    "rm get-pip.py"
-            ))
+        if (!pipInstalled) {
+            for (url in downloadUrls) {
+                logger.lifecycle("Installing pip")
 
-            logger.lifecycle("Installing pip")
-            logger.debug(commands.joinToString("\n"))
-
-            val result = project.exec {
-                it.workingDir(project.extensions.pythonPluginExtension.tmpDir)
-                it.executable("bash")
-                it.environment(System.getenv())
-                it.args(listOf(
-                        "-c",
-                        commands.joinToString(";")
+                commands.addAll(listOf(
+                        "curl -OL $url",
+                        "python get-pip.py -I --prefix $pythonDir",
+                        "rm get-pip.py"
                 ))
-                it.isIgnoreExitValue = true
-            }
 
-            if (result.exitValue == 0) {
-                isPipInstalled = true
-                break
+                logger.debug(commands.joinToString("\n"))
+
+                val result = project.exec {
+                    it.workingDir(project.extensions.pythonPluginExtension.tmpDir)
+                    it.executable("bash")
+                    it.environment(System.getenv())
+                    it.args(listOf(
+                            "-c",
+                            commands.joinToString(";")
+                    ))
+                    it.isIgnoreExitValue = true
+                }
+
+                if (result.exitValue == 0) {
+                    pipInstalled = true
+                    break
+                }
             }
         }
 
-        if (!isPipInstalled) {
+        if (!pipInstalled) {
             throw GradleException("Unable to install pip from $downloadUrls")
         }
 
@@ -124,16 +120,22 @@ class PythonRuntimeTask : DefaultTask() {
         }.rethrowFailure()
     }
 
-    private fun preparePythonEnv(commands: MutableList<String>) {
-        commands.clear()
+    private fun isPipInstalled(): Boolean {
+        val result = project.exec {
+            it.workingDir(project.extensions.pythonPluginExtension.tmpDir)
+            it.executable("bash")
+            it.environment(System.getenv())
+            it.standardOutput = NullOutputStream.INSTANCE
+            it.errorOutput = NullOutputStream.INSTANCE
+            it.args(listOf(
 
-        listOf("2.7", "3.6").map { File(pythonDir, "lib/python$it/site-packages") }.find {
-            it.exists()
-        }?.apply {
-            commands.add("""export PYTHONPATH="${this.canonicalPath}":${'$'}PYTHONPATH""")
+                    "-c",
+                    "python -m pip"
+            ))
+            it.isIgnoreExitValue = true
         }
 
-        commands.add("""export PATH="$pythonDir/bin":${'$'}PATH""")
+        return result.exitValue == 0
     }
 
 }

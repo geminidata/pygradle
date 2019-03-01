@@ -1,6 +1,7 @@
 package com.innobead.gradle.task
 
 import com.innobead.gradle.GradleSupport
+import com.innobead.gradle.plugin.PythonPlugin
 import com.innobead.gradle.plugin.pythonPluginExtension
 import com.innobead.gradle.plugin.taskName
 import org.gradle.api.DefaultTask
@@ -10,18 +11,10 @@ import java.io.File
 
 
 @GradleSupport
-class PythonBuildTask : DefaultTask() {
+class PythonBuildTask : AbstractTask() {
 
     companion object {
         val distTypeSupports = listOf("sdist", "bdist_wheel", "bdist_wheel --universal")
-    }
-
-    val virtualenvDir by lazy {
-        project.extensions.pythonPluginExtension.virtualenvDir
-    }
-
-    val pythonBuildDir by lazy {
-        project.extensions.pythonPluginExtension.pythonBuildDir
     }
 
     val pythonSetupPyFiles by lazy {
@@ -41,6 +34,7 @@ class PythonBuildTask : DefaultTask() {
     }
 
     init {
+        group = PythonPlugin.name
         description = "Build Python package using setup.py"
 
         project.afterEvaluate {
@@ -89,6 +83,8 @@ class PythonBuildTask : DefaultTask() {
                 logger.lifecycle("Publishing package to $pypiRepoUrl")
                 "upload -r pypi-internal"
             } else ""
+
+            pythonBuildDir?.deleteRecursively()
 
             commands.add("python $setupFile $distType --dist-dir=$pythonBuildDir $uploadCommand".trim())
 
